@@ -20,6 +20,7 @@ from .serializers import (
     ProductImageUploadSerializer,
 )
 from apps.core.permissions import CanManageProducts
+from apps.core.db_router import get_current_db_name
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -55,9 +56,14 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Get products for the current tenant.
-        The database router handles routing to the correct DB.
+        Uses the tenant database set by middleware.
         """
-        queryset = Product.objects.all()
+        # Get the current tenant database
+        db_name = get_current_db_name()
+        if db_name:
+            queryset = Product.objects.using(db_name).all()
+        else:
+            queryset = Product.objects.all()
         
         # Filter by status if provided
         status_filter = self.request.query_params.get('status')
